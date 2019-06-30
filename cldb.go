@@ -175,6 +175,7 @@ func (p payments) String() string {
 
 func (db *cldb) queryFields(table string, fields []string, obj cl) []cl {
 	var queryStr string
+	s := obj
 	if len(fields) == 0 {
 		queryStr = "*"
 	} else {
@@ -187,13 +188,38 @@ func (db *cldb) queryFields(table string, fields []string, obj cl) []cl {
 
 	result := make([]cl, 0)
 	for rows.Next() {
-		s := obj
-
-		err = scanToStruct(s, rows)
+		if len(fields) == 0 {
+			err = scanToStruct(s, rows)
+		} else {
+			err = scanToMap(s, fields, rows)
+		}
 		result = append(result, reflect.ValueOf(s).Elem().Interface().(cl))
 	}
 
 	return result
+}
+
+// query limited columns but map to full struct
+func scanToMap(obj interface{}, cols []string, rows *sql.Rows) error {
+	fields := make([]interface{}, 0)
+	for i := 0; i < len(cols); i++ {
+		var f interface{}
+		fields = append(fields, &f)
+	}
+
+	err := rows.Scan(fields...)
+
+	s := reflect.ValueOf(obj).Elem()
+	for i := 0; i < s.NumField(); i++ {
+		for _, c := range cols {
+			if strings.ToLower(s.Type().Field(i).Name) == strings.ToLower(c) {
+				var raw_value = *fields[i].(*interface{})
+				setFieldValue(s.Field(i), raw_value)
+			}
+		}
+	}
+
+	return err
 }
 
 func scanToStruct(obj interface{}, rows *sql.Rows) error {
