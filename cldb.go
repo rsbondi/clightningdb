@@ -8,6 +8,14 @@ import (
 	"strings"
 )
 
+type cldb struct {
+	*sql.DB
+}
+
+type cl interface {
+	String() string
+}
+
 type tx struct {
 	Id          []byte
 	Blockheight int
@@ -37,7 +45,7 @@ type utxoset struct {
 	Satoshis     int64
 }
 
-func (u *utxoset) String() string {
+func (u utxoset) String() string {
 	return fmt.Sprintf("{%x %d %d %d %d %x %d}", u.Txid, u.Outnum, u.Blockheight, u.Spendheight, u.Txindex, u.Scriptpubkey, u.Satoshis)
 }
 
@@ -56,7 +64,7 @@ type outputs struct {
 	Scriptpubkey        []byte
 }
 
-func (o *outputs) String() string {
+func (o outputs) String() string {
 	return fmt.Sprintf("{%x %d %d %d %d %d %d %x %x %d %d %x}", o.Prev_out_tx,
 		o.Prev_out_index, o.Value, o.Type, o.Status, o.Keyindex, o.Channel_id, o.Peer_id,
 		o.Commitment_point, o.Confirmation_height, o.Spend_height, o.Scriptpubkey)
@@ -67,7 +75,7 @@ type vars struct {
 	Val  string // this could be string or bytes???
 }
 
-func (v *vars) String() string {
+func (v vars) String() string {
 	return fmt.Sprintf("{%s %s}", v.Name, v.Val)
 }
 
@@ -77,6 +85,10 @@ type shachains struct {
 	Num_valid int
 }
 
+func (k shachains) String() string {
+	return fmt.Sprintf("{%d %d %d}", k.Id, k.Min_index, k.Num_valid)
+}
+
 type shachain_known struct {
 	Shachain_id int
 	Pos         int
@@ -84,7 +96,7 @@ type shachain_known struct {
 	Hash        []byte
 }
 
-func (k *shachain_known) String() string {
+func (k shachain_known) String() string {
 	return fmt.Sprintf("{%d %d %d %x}", k.Shachain_id, k.Pos, k.Idx, k.Hash)
 }
 
@@ -94,7 +106,7 @@ type peers struct {
 	Address string
 }
 
-func (p *peers) String() string {
+func (p peers) String() string {
 	return fmt.Sprintf("{%d %x %s}", p.Id, p.Node_id, p.Address)
 }
 
@@ -106,6 +118,11 @@ type channel_configs struct {
 	Htlc_minimum_msat             int
 	To_self_delay                 int
 	Max_accepted_htlcs            int
+}
+
+func (c channel_configs) String() string {
+	return fmt.Sprintf("{%d %d %d %d %d %d %d }", c.Id, c.Dust_limit_satoshis, c.Max_htlc_value_in_flight_msat,
+		c.Channel_reserve_satoshis, c.Htlc_minimum_msat, c.To_self_delay, c.Max_accepted_htlcs)
 }
 
 type invoices struct {
@@ -123,7 +140,7 @@ type invoices struct {
 	Description       string
 }
 
-func (i *invoices) String() string {
+func (i invoices) String() string {
 	return structString(i)
 }
 
@@ -152,8 +169,50 @@ type payments struct {
 	Bolt11           string
 }
 
-func (p *payments) String() string {
+func (p payments) String() string {
 	return structString(p)
+}
+
+func (db *cldb) queryFields(table string, fields []string, obj cl) []cl {
+	var queryStr string
+	if len(fields) == 0 {
+		queryStr = "*"
+	} else {
+		queryStr = strings.Join(fields, ",")
+	}
+	rows, err := db.Query(fmt.Sprintf("SELECT %s FROM %s", queryStr, table))
+	if err != nil {
+
+	}
+
+	result := make([]cl, 0)
+	for rows.Next() {
+		s := obj
+
+		err = scanToClStruct(s, rows, db)
+		result = append(result, reflect.ValueOf(s).Elem().Interface().(cl))
+	}
+
+	return result
+}
+
+func scanToClStruct(obj interface{}, rows *sql.Rows, db *cldb) error {
+	s := reflect.ValueOf(obj).Elem()
+	fields := make([]interface{}, 0)
+	for i := 0; i < s.NumField(); i++ {
+		var f interface{}
+		fields = append(fields, &f)
+	}
+
+	err := rows.Scan(fields...)
+
+	for i := 0; i < s.NumField(); i++ {
+		var raw_value = *fields[i].(*interface{})
+		setFieldValue(s.Field(i), raw_value)
+	}
+
+	return err
+
 }
 
 func scanToStruct(obj interface{}, rows *sql.Rows, db *sql.DB) error {
@@ -190,8 +249,8 @@ func setFieldValue(field reflect.Value, val interface{}) {
 
 }
 
-func structString(i interface{}) string {
-	o := reflect.ValueOf(i).Elem()
+func structString(i cl) string {
+	o := reflect.ValueOf(i) //.Elem()
 	sb := &strings.Builder{}
 	values := make([]interface{}, 0)
 	sb.WriteString("{")

@@ -60,6 +60,6 @@ type channels struct {
 	Remote_ann_bitcoin_sig           []byte
 }
 
-func (c *channels) String() string {
+func (c channels) String() string {
 	return structString(c)
 }

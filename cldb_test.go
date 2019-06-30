@@ -12,14 +12,14 @@ const dbpath = "./lightningd.sqlite3"
 
 func TestUtxoset(t *testing.T) {
 	u := &utxoset{}
-	runtest(t, u, "utxoset", false)
+	runcltest(t, u, "utxoset", false)
 }
 
 func TestTx(t *testing.T) {
 	tr := &tx{}
 	rows, db := runtest(t, tr, "transactions", true)
 
-	for rows.Next() {
+	for rows.Next() { // TODO: remove need for separate test
 		err := scanToStruct(tr, rows, db)
 		log.Printf("txid: %s\n", tr.IdStr())
 		log.Printf("tx: %s\n", tr.Raw())
@@ -30,7 +30,7 @@ func TestTx(t *testing.T) {
 
 func TestOutputs(t *testing.T) {
 	o := &outputs{}
-	runtest(t, o, "outputs", false)
+	runcltest(t, o, "outputs", false)
 }
 
 func TestVars(t *testing.T) {
@@ -39,42 +39,52 @@ func TestVars(t *testing.T) {
 
 func TestShachains(t *testing.T) {
 	s := &shachains{}
-	runtest(t, s, "shachains", false)
+	runcltest(t, s, "shachains", false)
 }
 
 func TestShachainsKnown(t *testing.T) {
 	s := &shachain_known{}
-	runtest(t, s, "shachain_known", false)
+	runcltest(t, s, "shachain_known", false)
 }
 
 func TestPeers(t *testing.T) {
 	p := &peers{}
-	runtest(t, p, "peers", false)
+	runcltest(t, p, "peers", false)
 }
 
 func TestChannelConfigs(t *testing.T) {
 	p := &channel_configs{}
-	runtest(t, p, "channel_configs", false)
+	runcltest(t, p, "channel_configs", false)
 }
 
 func TestChannels(t *testing.T) {
 	c := &channels{}
-	runtest(t, c, "channels", false)
+	runcltest(t, c, "channels", false)
 }
 
 func TestInvoices(t *testing.T) {
 	i := &invoices{}
-	runtest(t, i, "invoices", false)
+	runcltest(t, i, "invoices", false)
 }
 
 func TestPayments(t *testing.T) {
 	p := &payments{}
-	runtest(t, p, "payments", false)
+	runcltest(t, p, "payments", false)
 }
 
 func checkErr(err error, t *testing.T) {
 	if err != nil {
 		t.Errorf("Error: %s", err.Error())
+	}
+}
+
+func runcltest(t *testing.T, entity cl, table string, more bool) {
+	sdb, err := sql.Open("sqlite3", dbpath)
+	checkErr(err, t)
+	db := &cldb{sdb}
+	rows := db.queryFields(table, make([]string, 0), entity)
+	for _, r := range rows {
+		log.Printf("%v\n", r)
 	}
 }
 
