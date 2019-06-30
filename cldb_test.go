@@ -58,8 +58,18 @@ func TestChannelConfigs(t *testing.T) {
 }
 
 func TestChannels(t *testing.T) {
-	p := &channels{}
-	runtest(t, p, "channels", false)
+	c := &channels{}
+	runtest(t, c, "channels", false)
+}
+
+func TestInvoices(t *testing.T) {
+	i := &invoices{}
+	runtest(t, i, "invoices", false)
+}
+
+func TestPayments(t *testing.T) {
+	p := &payments{}
+	runtest(t, p, "payments", false)
 }
 
 func checkErr(err error, t *testing.T) {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"reflect"
+	"strings"
 )
 
 type tx struct {
@@ -15,7 +16,7 @@ type tx struct {
 }
 
 func (t *tx) String() string {
-	return fmt.Sprintf("{%x %d %d%x}", t.Id, t.Blockheight, t.Txindex, t.Rawtx)
+	return fmt.Sprintf("{%x %d %d %x}", t.Id, t.Blockheight, t.Txindex, t.Rawtx)
 }
 
 func (t *tx) IdStr() string {
@@ -107,6 +108,54 @@ type channel_configs struct {
 	Max_accepted_htlcs            int
 }
 
+type invoices struct {
+	Id                int
+	State             int
+	Msatoshi          int
+	Payment_hash      []byte
+	Payment_key       []byte
+	Label             string
+	Expiry_time       int
+	Pay_index         int
+	Msatoshi_received int
+	Paid_timestamp    int
+	Bolt11            string
+	Description       string
+}
+
+func (i *invoices) String() string {
+	return structString(i)
+}
+
+type payments struct {
+	Id               int
+	Timestamp        int
+	Status           int
+	Payment_hash     []byte
+	Destination      []byte
+	Msatoshi         int
+	Payment_preimage []byte
+	Path_secrets     []byte
+	Route_nodes      []byte
+	Route_channels   string
+	Failonionreply   []byte
+	Faildestperm     int
+	Failindex        int
+	Failcode         int
+	Failnode         []byte
+	Failchannel      []byte
+	Failupdate       []byte
+	Msatoshi_sent    int
+	Faildetail       string
+	Description      string
+	Faildirection    int
+	Bolt11           string
+}
+
+func (p *payments) String() string {
+	return structString(p)
+}
+
 func scanToStruct(obj interface{}, rows *sql.Rows, db *sql.DB) error {
 	s := reflect.ValueOf(obj).Elem()
 	fields := make([]interface{}, 0)
@@ -139,4 +188,32 @@ func setFieldValue(field reflect.Value, val interface{}) {
 		field.SetBytes(val.([]byte)) // BLOB
 	}
 
+}
+
+func structString(i interface{}) string {
+	o := reflect.ValueOf(i).Elem()
+	sb := &strings.Builder{}
+	values := make([]interface{}, 0)
+	sb.WriteString("{")
+	for i := 0; i < o.NumField(); i++ {
+		switch o.Field(i).Kind() {
+		case reflect.Int, reflect.Int64:
+			sb.WriteString("%d")
+		case reflect.Slice:
+			sb.WriteString("%x")
+		default:
+			sb.WriteString("\"%s\"")
+		}
+		if i < o.NumField()-1 {
+			sb.WriteString(" ")
+		} else {
+			sb.WriteString("}")
+		}
+
+		f := o.Field(i).Interface()
+
+		values = append(values, f)
+	}
+
+	return fmt.Sprintf(sb.String(), values...)
 }

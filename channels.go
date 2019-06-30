@@ -1,11 +1,5 @@
 package clightningdb
 
-import (
-	"fmt"
-	"reflect"
-	"strings"
-)
-
 type channels struct {
 	Id                               int
 	Peer_id                          int
@@ -67,27 +61,5 @@ type channels struct {
 }
 
 func (c *channels) String() string {
-	o := reflect.ValueOf(c).Elem()
-	sb := &strings.Builder{}
-	values := make([]interface{}, 0)
-	sb.WriteString("{")
-	for i := 0; i < o.NumField(); i++ {
-		switch o.Field(i).Kind() {
-		case reflect.Int, reflect.Int64:
-			sb.WriteString("%d")
-		case reflect.Slice:
-			sb.WriteString("%x")
-		}
-		if i < o.NumField()-1 {
-			sb.WriteString(" ")
-		} else {
-			sb.WriteString("}")
-		}
-
-		f := o.Field(i).Interface()
-
-		values = append(values, f)
-	}
-
-	return fmt.Sprintf(sb.String(), values...)
+	return structString(c)
 }
