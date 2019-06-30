@@ -189,14 +189,14 @@ func (db *cldb) queryFields(table string, fields []string, obj cl) []cl {
 	for rows.Next() {
 		s := obj
 
-		err = scanToClStruct(s, rows, db)
+		err = scanToStruct(s, rows)
 		result = append(result, reflect.ValueOf(s).Elem().Interface().(cl))
 	}
 
 	return result
 }
 
-func scanToClStruct(obj interface{}, rows *sql.Rows, db *cldb) error {
+func scanToStruct(obj interface{}, rows *sql.Rows) error {
 	s := reflect.ValueOf(obj).Elem()
 	fields := make([]interface{}, 0)
 	for i := 0; i < s.NumField(); i++ {
@@ -212,26 +212,6 @@ func scanToClStruct(obj interface{}, rows *sql.Rows, db *cldb) error {
 	}
 
 	return err
-
-}
-
-func scanToStruct(obj interface{}, rows *sql.Rows, db *sql.DB) error {
-	s := reflect.ValueOf(obj).Elem()
-	fields := make([]interface{}, 0)
-	for i := 0; i < s.NumField(); i++ {
-		var f interface{}
-		fields = append(fields, &f)
-	}
-
-	err := rows.Scan(fields...)
-
-	for i := 0; i < s.NumField(); i++ {
-		var raw_value = *fields[i].(*interface{})
-		setFieldValue(s.Field(i), raw_value)
-	}
-
-	return err
-
 }
 
 func setFieldValue(field reflect.Value, val interface{}) {

@@ -17,10 +17,10 @@ func TestUtxoset(t *testing.T) {
 
 func TestTx(t *testing.T) {
 	tr := &tx{}
-	rows, db := runtest(t, tr, "transactions", true)
+	rows := runtest(t, tr, "transactions", true)
 
 	for rows.Next() { // TODO: remove need for separate test
-		err := scanToStruct(tr, rows, db)
+		err := scanToStruct(tr, rows)
 		log.Printf("txid: %s\n", tr.IdStr())
 		log.Printf("tx: %s\n", tr.Raw())
 		checkErr(err, t)
@@ -88,7 +88,7 @@ func runcltest(t *testing.T, entity cl, table string, more bool) {
 	}
 }
 
-func runtest(t *testing.T, entity interface{}, table string, more bool) (*sql.Rows, *sql.DB) {
+func runtest(t *testing.T, entity interface{}, table string, more bool) *sql.Rows {
 	db, err := sql.Open("sqlite3", dbpath)
 	checkErr(err, t)
 
@@ -100,7 +100,7 @@ func runtest(t *testing.T, entity interface{}, table string, more bool) (*sql.Ro
 	for rows.Next() {
 		s := entity
 
-		err = scanToStruct(s, rows, db)
+		err = scanToStruct(s, rows)
 		log.Printf("row: %v\n", s)
 		checkErr(err, t)
 	}
@@ -110,5 +110,5 @@ func runtest(t *testing.T, entity interface{}, table string, more bool) (*sql.Ro
 		checkErr(err, t)
 	}
 
-	return rows, db
+	return rows
 }
