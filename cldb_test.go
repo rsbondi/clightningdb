@@ -57,6 +57,11 @@ func TestChannelConfigs(t *testing.T) {
 	runtest(t, p, "channel_configs", false)
 }
 
+func TestChannels(t *testing.T) {
+	p := &channels{}
+	runtest(t, p, "channels", false)
+}
+
 func checkErr(err error, t *testing.T) {
 	if err != nil {
 		t.Errorf("Error: %s", err.Error())
