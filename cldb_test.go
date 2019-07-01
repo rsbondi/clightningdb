@@ -82,6 +82,16 @@ func TestChannelTxs(t *testing.T) {
 	runcltest(t, b, "channeltxs", []string{})
 }
 
+func TestChannelHtlcs(t *testing.T) {
+	b := &channel_htlcs{}
+	runcltest(t, b, "channel_htlcs", []string{})
+}
+
+func TestVersion(t *testing.T) {
+	v := &version{}
+	runcltest(t, v, "version", []string{})
+}
+
 func TestForwards(t *testing.T) {
 	b := &forwarded_payments{}
 	runcltest(t, b, "forwarded_payments", []string{})

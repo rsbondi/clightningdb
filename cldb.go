@@ -262,6 +262,28 @@ func (c channeltxs) String() string {
 	return structString(c)
 }
 
+type channel_htlcs struct {
+	Id              int
+	Channel_id      int
+	Channel_htlc_id int
+	Direction       int
+	Origin_htlc     int
+	Msatoshi        int
+	Cltv_expiry     int
+	Payment_hash    []byte
+	Payment_key     []byte
+	Routing_onion   []byte
+	Failuremsg      []byte
+	Malformed_onion int
+	Hstate          int
+	Shared_secret   []byte
+	Received_time   int
+}
+
+func (c channel_htlcs) String() string {
+	return structString(c)
+}
+
 type forwarded_payments struct { // TODO: meaningful joins
 	In_htlc_id       int
 	Out_htlc_id      int
@@ -278,6 +300,15 @@ type forwarded_payments struct { // TODO: meaningful joins
 func (p forwarded_payments) String() string {
 	return structString(p)
 }
+
+type version struct {
+	Version int
+}
+
+func (v version) String() string {
+	return structString(v)
+}
+
 
 func (db *cldb) queryFields(table string, fields []string, obj cl) []cl {
 	var queryStr string
