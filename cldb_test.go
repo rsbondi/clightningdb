@@ -72,6 +72,21 @@ func TestPayments(t *testing.T) {
 	runcltest(t, p, "payments", []string{})
 }
 
+func TestBlocks(t *testing.T) {
+	b := &blocks{}
+	runcltest(t, b, "blocks", []string{})
+}
+
+func TestChannelTxs(t *testing.T) {
+	b := &channeltxs{}
+	runcltest(t, b, "channeltxs", []string{})
+}
+
+func TestForwards(t *testing.T) {
+	b := &forwarded_payments{}
+	runcltest(t, b, "forwarded_payments", []string{})
+}
+
 func TestPartialFields(t *testing.T) {
 	p := &payments{}
 	runcltest(t, p, "payments", []string{"id", "timestamp", "status",

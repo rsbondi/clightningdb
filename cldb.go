@@ -158,10 +158,9 @@ func (db *cldb) listPeers() {
 		resultfields = append(resultfields, &f)
 	}
 
-	
 	for rows.Next() {
 		rows.Scan(resultfields...)
-		
+
 		finalresults := make(peerresult, 0)
 		for i := 0; i < len(resultfields); i++ {
 			var raw_value = *resultfields[i].(*interface{})
@@ -237,6 +236,46 @@ type payments struct {
 }
 
 func (p payments) String() string {
+	return structString(p)
+}
+
+type blocks struct {
+	Height    int
+	Hash      []byte
+	Prev_hash []byte
+}
+
+func (b blocks) String() string {
+	return structString(b)
+}
+
+type channeltxs struct {
+	Id             int
+	Channel_id     int
+	Type           int
+	Transaction_id []byte
+	Input_num      int
+	Blockheight    int
+}
+
+func (c channeltxs) String() string {
+	return structString(c)
+}
+
+type forwarded_payments struct { // TODO: meaningful joins
+	In_htlc_id       int
+	Out_htlc_id      int
+	In_channel_scid  int
+	Out_channel_scid int
+	In_msatoshi      int
+	Out_msatoshi     int
+	State            int
+	Received_time    int
+	Resolved_time    int
+	Failcode         int
+}
+
+func (p forwarded_payments) String() string {
 	return structString(p)
 }
 
