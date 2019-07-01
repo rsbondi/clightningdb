@@ -110,6 +110,73 @@ func (p peers) String() string {
 	return fmt.Sprintf("{%d %x %s}", p.Id, p.Node_id, p.Address)
 }
 
+type fullpeer struct {
+	peers
+	chans []channels
+}
+
+func (p fullpeer) String() string {
+	return structString(p)
+}
+
+type peerresult []interface{}
+
+func (p peerresult) String() string {
+	return mapString(p)
+}
+
+func (db *cldb) listPeers() {
+	p := &peers{}
+	c := &channels{}
+	fields := make([]string, 0)
+
+	s := reflect.ValueOf(p).Elem()
+
+	for i := 0; i < s.NumField(); i++ {
+		f := s.Type().Field(i).Name
+		fields = append(fields, f)
+	}
+
+	s = reflect.ValueOf(c).Elem()
+
+	for i := 0; i < s.NumField(); i++ {
+		f := s.Type().Field(i).Name
+		fields = append(fields, f)
+	}
+
+	q := "select * from peers p left join channels c on p.id=c.peer_id"
+	rows, err := db.Query(q)
+	if err != nil {
+
+	}
+
+	out := make([]interface{}, 0)
+
+	resultfields := make([]interface{}, 0)
+	for i := 0; i < len(fields); i++ {
+		var f interface{}
+		resultfields = append(resultfields, &f)
+	}
+
+	finalresults := make(peerresult, 0)
+
+	for rows.Next() {
+		rows.Scan(resultfields...)
+
+		for i := 0; i < len(resultfields); i++ {
+			var raw_value = *resultfields[i].(*interface{})
+			finalresults = append(finalresults, raw_value)
+		}
+
+		out = append(out, finalresults)
+	}
+
+	// TODO: map to fullpeer struct
+
+	fmt.Printf("%v\n", out)
+
+}
+
 type channel_configs struct {
 	Id                            int
 	Dust_limit_satoshis           int
@@ -276,6 +343,34 @@ func structString(i cl) string {
 		}
 
 		f := o.Field(i).Interface()
+
+		values = append(values, f)
+	}
+
+	return fmt.Sprintf(sb.String(), values...)
+}
+
+func mapString(i cl) string {
+	o := reflect.ValueOf(i)
+	sb := &strings.Builder{}
+	values := make([]interface{}, 0)
+	sb.WriteString("{")
+	for i := 0; i < o.Len(); i++ {
+		switch o.Index(i).Elem().Kind() {
+		case reflect.Int, reflect.Int64:
+			sb.WriteString("%d")
+		case reflect.Slice:
+			sb.WriteString("%x")
+		default:
+			sb.WriteString("\"%s\"")
+		}
+		if i < o.Len()-1 {
+			sb.WriteString(" ")
+		} else {
+			sb.WriteString("}")
+		}
+
+		f := o.Index(i).Interface()
 
 		values = append(values, f)
 	}

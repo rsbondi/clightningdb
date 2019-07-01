@@ -78,6 +78,31 @@ func TestPartialFields(t *testing.T) {
 		"payment_hash", "destination", "msatoshi"})
 }
 
+func TestStructAccess(t *testing.T) {
+	p := &payments{}
+
+	sdb, err := sql.Open("sqlite3", dbpath)
+	checkErr(err, t)
+	db := &cldb{sdb}
+	rows := db.queryFields("payments", []string{"id", "timestamp", "status",
+		"payment_hash", "destination", "msatoshi"}, p)
+	for _, r := range rows {
+		pay := r.(payments)
+		log.Printf("%x %d\n", pay.Payment_hash, pay.Msatoshi)
+	}
+
+}
+
+func TestListPeers(t *testing.T) {
+	sdb, err := sql.Open("sqlite3", dbpath)
+	if err != nil {
+
+	}
+	db := &cldb{sdb}
+	db.listPeers()
+
+}
+
 func checkErr(err error, t *testing.T) {
 	if err != nil {
 		t.Errorf("Error: %s", err.Error())
