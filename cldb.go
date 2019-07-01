@@ -158,11 +158,11 @@ func (db *cldb) listPeers() {
 		resultfields = append(resultfields, &f)
 	}
 
-	finalresults := make(peerresult, 0)
-
+	
 	for rows.Next() {
 		rows.Scan(resultfields...)
-
+		
+		finalresults := make(peerresult, 0)
 		for i := 0; i < len(resultfields); i++ {
 			var raw_value = *resultfields[i].(*interface{})
 			finalresults = append(finalresults, raw_value)
