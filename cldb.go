@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
+	"log"
 	"reflect"
 	"strings"
 )
@@ -111,18 +112,12 @@ func (p peers) String() string {
 }
 
 type fullpeer struct {
-	peers
-	chans []channels
+	Peers *peers
+	Chans *[]channels
 }
 
 func (p fullpeer) String() string {
 	return structString(p)
-}
-
-type peerresult []interface{}
-
-func (p peerresult) String() string {
-	return mapString(p)
 }
 
 func (db *cldb) listPeers() {
@@ -130,27 +125,27 @@ func (db *cldb) listPeers() {
 	c := &channels{}
 	fields := make([]string, 0)
 
-	s := reflect.ValueOf(p).Elem()
+	rp := reflect.ValueOf(p).Elem()
 
-	for i := 0; i < s.NumField(); i++ {
-		f := s.Type().Field(i).Name
+	for i := 0; i < rp.NumField(); i++ {
+		f := rp.Type().Field(i).Name
 		fields = append(fields, f)
 	}
 
-	s = reflect.ValueOf(c).Elem()
+	rc := reflect.ValueOf(c).Elem()
 
-	for i := 0; i < s.NumField(); i++ {
-		f := s.Type().Field(i).Name
+	for i := 0; i < rc.NumField(); i++ {
+		f := rc.Type().Field(i).Name
 		fields = append(fields, f)
 	}
 
 	q := "select * from peers p left join channels c on p.id=c.peer_id"
 	rows, err := db.Query(q)
 	if err != nil {
-
+		log.Printf("peers query failed: %s\n", err.Error())
 	}
 
-	out := make([]interface{}, 0)
+	out := make([]*fullpeer, 0)
 
 	resultfields := make([]interface{}, 0)
 	for i := 0; i < len(fields); i++ {
@@ -161,16 +156,27 @@ func (db *cldb) listPeers() {
 	for rows.Next() {
 		rows.Scan(resultfields...)
 
-		finalresults := make(peerresult, 0)
+		peer := &peers{}
+		chans := make([]channels, 0)
+		full := &fullpeer{peer, &chans}
+		ch := &channels{}
+		rp = reflect.ValueOf(peer).Elem()
+		rc = reflect.ValueOf(ch).Elem()
+
 		for i := 0; i < len(resultfields); i++ {
 			var raw_value = *resultfields[i].(*interface{})
-			finalresults = append(finalresults, raw_value)
+			if i < rp.NumField() {
+				setFieldValue(rp.Field(i), raw_value)
+			} else {
+				setFieldValue(rc.Field(i-rp.NumField()), raw_value)
+			}
 		}
+		chans = append(chans, *ch)
 
-		out = append(out, finalresults)
+		out = append(out, full)
 	}
 
-	// TODO: map to fullpeer struct
+	// TODO: better test data with peers with multiple/zero channels
 
 	fmt.Printf("%v\n", out)
 
@@ -308,7 +314,6 @@ type version struct {
 func (v version) String() string {
 	return structString(v)
 }
-
 
 func (db *cldb) queryFields(table string, fields []string, obj cl) []cl {
 	var queryStr string
