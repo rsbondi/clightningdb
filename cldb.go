@@ -315,7 +315,7 @@ func (v version) String() string {
 	return structString(v)
 }
 
-func (db *cldb) queryFields(table string, fields []string, obj cl) []cl {
+func (db *cldb) queryFields(table string, fields []string, obj cl) ([]cl, []string) {
 	var queryStr string
 	s := obj
 	if len(fields) == 0 {
@@ -325,8 +325,10 @@ func (db *cldb) queryFields(table string, fields []string, obj cl) []cl {
 	}
 	rows, err := db.Query(fmt.Sprintf("SELECT %s FROM %s", queryStr, table))
 	if err != nil {
-
+		log.Printf("db query fields error: %s", err.Error())
+		return []cl{}, []string{}
 	}
+	columns, _ := rows.Columns()
 
 	result := make([]cl, 0)
 	for rows.Next() {
@@ -338,7 +340,7 @@ func (db *cldb) queryFields(table string, fields []string, obj cl) []cl {
 		result = append(result, reflect.ValueOf(s).Elem().Interface().(cl))
 	}
 
-	return result
+	return result, columns
 }
 
 // query limited columns but map to full struct

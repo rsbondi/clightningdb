@@ -109,7 +109,7 @@ func TestStructAccess(t *testing.T) {
 	sdb, err := sql.Open("sqlite3", dbpath)
 	checkErr(err, t)
 	db := &cldb{sdb}
-	rows := db.queryFields("payments", []string{"id", "timestamp", "status",
+	rows, _ := db.queryFields("payments", []string{"id", "timestamp", "status",
 		"payment_hash", "destination", "msatoshi"}, p)
 	for _, r := range rows {
 		pay := r.(payments)
@@ -138,7 +138,8 @@ func runcltest(t *testing.T, entity cl, table string, fields []string) {
 	sdb, err := sql.Open("sqlite3", dbpath)
 	checkErr(err, t)
 	db := &cldb{sdb}
-	rows := db.queryFields(table, fields, entity)
+	rows, cols := db.queryFields(table, fields, entity)
+	log.Printf("query columns: %v\n", cols)
 	for _, r := range rows {
 		log.Printf("%v\n", r)
 	}
