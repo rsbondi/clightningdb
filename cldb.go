@@ -315,6 +315,44 @@ func (v version) String() string {
 	return structString(v)
 }
 
+type forwards struct {
+	ChannelIn  []byte
+	ChannelOut []byte
+	MsatIn     int64
+	MsatOut    int64
+	NodeIn     []byte
+	NodeOut    []byte
+}
+
+func (f forwards) String() string {
+	return fmt.Sprintf("{ %s %s %d %d %x %x", f.ChannelIn, f.ChannelOut, f.MsatIn, f.MsatOut, f.NodeIn, f.NodeOut)
+}
+
+func (db *cldb) listForwards() []forwards {
+	result := make([]forwards, 0)
+	rows, _ := db.Query(`select c.short_channel_id, 
+	co.short_channel_id, 
+	f.in_msatoshi, f.out_msatoshi,
+	p.node_id, po.node_id
+	from forwarded_payments f
+	join channel_htlcs h on h.id=f.in_htlc_id
+	join channel_htlcs ho on ho.id=f.out_htlc_id
+	join channels c on c.id=h.channel_id
+	join channels co on co.id=ho.channel_id
+	join peers p on c.peer_id=p.id
+	join peers po on co.peer_id=po.id;`)
+	f := &forwards{}
+	for rows.Next() {
+		err := scanToStruct(f, rows)
+		result = append(result, *f)
+		if err != nil {
+			log.Printf("db query fields error: %s", err.Error())
+			return result
+		}
+	}
+	return result
+}
+
 func (db *cldb) queryFields(table string, fields []string, obj cl) ([]cl, []string) {
 	var queryStr string
 	s := obj

@@ -128,6 +128,17 @@ func TestListPeers(t *testing.T) {
 
 }
 
+func TestListForwards(t *testing.T) {
+	sdb, err := sql.Open("sqlite3", dbpath)
+	if err != nil {
+
+	}
+	db := &cldb{sdb}
+	f := db.listForwards()
+	log.Printf("Forwards with peer: %v", f)
+
+}
+
 func checkErr(err error, t *testing.T) {
 	if err != nil {
 		t.Errorf("Error: %s", err.Error())
