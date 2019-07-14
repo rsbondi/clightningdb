@@ -355,7 +355,6 @@ func (db *cldb) listForwards() []forwards {
 
 func (db *cldb) queryFields(table string, fields []string, obj cl) ([]cl, []string) {
 	var queryStr string
-	s := obj
 	if len(fields) == 0 {
 		queryStr = "*"
 	} else {
@@ -369,7 +368,10 @@ func (db *cldb) queryFields(table string, fields []string, obj cl) ([]cl, []stri
 	columns, _ := rows.Columns()
 
 	result := make([]cl, 0)
+	s := obj
 	for rows.Next() {
+		p := reflect.ValueOf(s).Elem()
+		p.Set(reflect.Zero(p.Type()))
 		if len(fields) == 0 {
 			err = scanToStruct(s, rows)
 		} else {
