@@ -316,33 +316,45 @@ func (v version) String() string {
 }
 
 type forwards struct {
-	ChannelIn  []byte
-	ChannelOut []byte
 	MsatIn     int64
 	MsatOut    int64
+	AvgIn      float64
+	AvgOut     float64
+	Num        int64
+	ChannelIn  []byte
+	ChannelOut []byte
 	NodeIn     []byte
 	NodeOut    []byte
+	Failcode   int64
 }
 
 func (f forwards) String() string {
-	return fmt.Sprintf("{ %s %s %d %d %x %x", f.ChannelIn, f.ChannelOut, f.MsatIn, f.MsatOut, f.NodeIn, f.NodeOut)
+	return fmt.Sprintf("{ %s %s %d %d %.0f %.0f %d %x %x",
+		f.ChannelIn, f.ChannelOut, f.MsatIn, f.MsatOut, f.AvgIn, f.AvgOut, f.Num, f.NodeIn, f.NodeOut)
 }
 
-func (db *cldb) listForwards() []forwards {
+func (db *cldb) forwardInfo() []forwards {
 	result := make([]forwards, 0)
-	rows, _ := db.Query(`select c.short_channel_id, 
+	rows, _ := db.Query(`SELECT
+	SUM(in_msatoshi) msat_in,
+	SUM(out_msatoshi) msat_out,
+	ROUND(AVG(in_msatoshi)) avg_in,
+	ROUND(AVG(out_msatoshi)) avg_out,
+	COUNT(in_msatoshi) num,
+	c.short_channel_id, 
 	co.short_channel_id, 
-	f.in_msatoshi, f.out_msatoshi,
-	p.node_id, po.node_id
+	p.node_id, po.node_id,
+	f.failcode
 	from forwarded_payments f
 	join channel_htlcs h on h.id=f.in_htlc_id
-	join channel_htlcs ho on ho.id=f.out_htlc_id
+	left join channel_htlcs ho on ho.id=f.out_htlc_id
 	join channels c on c.id=h.channel_id
-	join channels co on co.id=ho.channel_id
+	left join channels co on co.id=ho.channel_id
 	join peers p on c.peer_id=p.id
-	join peers po on co.peer_id=po.id;`)
-	f := &forwards{}
+	left join peers po on co.peer_id=po.id
+	GROUP BY p.node_id, po.node_id, c.short_channel_id, co.short_channel_id;`)
 	for rows.Next() {
+		f := &forwards{}
 		err := scanToStruct(f, rows)
 		result = append(result, *f)
 		if err != nil {
@@ -433,6 +445,8 @@ func setFieldValue(field reflect.Value, val interface{}) {
 		field.SetString(val.(string))
 	case reflect.Int, reflect.Int64:
 		field.SetInt(val.(int64))
+	case reflect.Float64:
+		field.SetFloat(val.(float64))
 	case reflect.Slice:
 		field.SetBytes(val.([]byte)) // BLOB
 	}
@@ -446,7 +460,7 @@ func structString(i cl) string {
 	sb.WriteString("{")
 	for i := 0; i < o.NumField(); i++ {
 		switch o.Field(i).Kind() {
-		case reflect.Int, reflect.Int64:
+		case reflect.Int, reflect.Int64, reflect.Float64:
 			sb.WriteString("%d")
 		case reflect.Slice:
 			sb.WriteString("%x")
